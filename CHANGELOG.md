@@ -7,6 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-09-09
+
+### Added
+- **OpenAI Integration**: Full integration with OpenAI's GPT-3.5-turbo for AI-powered wildlife responses
+  - Express server backend with OpenAI API endpoints (`/api/chat` and `/api/health`)
+  - Smart fallback system - automatically uses local responses if OpenAI API is unavailable
+  - Environment configuration with `.env` support for API keys
+  - AI toggle in chatbot interface - users can switch between AI and local responses
+  - Contextual AI responses that include current species data and seasonal information
+
+- **Enhanced Species Modal Navigation**: Multi-species navigation system for detailed exploration
+  - Navigation arrows (← →) for browsing through multiple species in single modal session
+  - Species counter display ("X of Y species") showing current position
+  - Seamless navigation between species without closing modal
+  - Mobile-responsive navigation controls with touch-friendly design
+
+- **Smart "More Info" Button System**: Post-AI response interaction enhancement
+  - Automatic species detection in AI responses using intelligent text analysis
+  - Dynamic "More Info" buttons appear after AI responses mention wildlife
+  - One-click access to detailed species information and map integration
+  - Support for single species ("Learn more about Coyotes") and multiple species ("Learn more about 4 species")
+
+- **Comprehensive Species Image System**: Professional wildlife photography integration
+  - Added high-quality images for all species with proper attribution
+  - Coyote, California Poppy, Red-tailed Hawk, Coast Live Oak, California Scrub Jay images
+  - Unsplash integration with proper photo credits and licensing
+  - Moved images to public directory for optimal web serving
+
+### Changed
+- **Enhanced Chatbot Interface**: Modernized user experience with AI capabilities
+  - Updated welcome message to reflect AI-powered capabilities
+  - Added loading states and typing indicators during AI processing
+  - Improved error handling with graceful degradation to local responses
+  - Better visual feedback for user interactions
+
+- **Improved Modal System**: Context-aware navigation and species management
+  - Modal now handles both single species and arrays of species
+  - Enhanced state management with navigation tracking
+  - Better integration between chatbot queries and species exploration
+
+- **Package Dependencies**: Added backend and AI capabilities
+  - Express server framework and CORS middleware
+  - OpenAI SDK for GPT integration
+  - Environment variable management with dotenv
+  - Concurrently for running multiple development servers
+  - TypeScript types for all new dependencies
+
+### Fixed
+- **Species Image Rendering**: Corrected image paths and accessibility
+  - Fixed Red-tailed Hawk image path from relative to absolute URL
+  - Moved all species images to proper public/images directory
+  - Updated image attribution system for proper credit display
+
+### Technical Improvements
+- **Backend Architecture**: Full-stack application with Express server
+  - RESTful API endpoints for chat completion and health monitoring
+  - Specialized system prompts for Golden Gate Park wildlife expertise
+  - Rate limiting awareness and API error handling
+  - Development workflow with concurrent frontend/backend servers
+
+- **Advanced State Management**: Multi-species modal navigation system
+  - Enhanced MapContext with navigation methods and species tracking
+  - Modal state management for complex multi-species interactions
+  - Improved component communication and data flow
+
+- **Developer Experience**: Enhanced development setup and documentation
+  - Comprehensive setup guide in README-OpenAI-Setup.md
+  - Environment template with .env.example
+  - Updated npm scripts for development workflow (npm run dev)
+  - Git configuration to properly handle environment files
+
 ## [0.2.0] - 2025-09-09
 
 ### Added

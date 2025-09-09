@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { WildlifeSpecies } from '../types/Wildlife';
 import { wildlifeDataService } from '../services/wildlifeDataService';
+import { openaiService } from '../services/openaiService';
 import { useMap } from '../contexts/MapContext';
 import './ChatbotSection.css';
 
@@ -9,6 +10,8 @@ interface ChatMessage {
   text: string;
   isBot: boolean;
   timestamp: Date;
+  detectedSpecies?: WildlifeSpecies[];
+  showMoreInfoButton?: boolean;
 }
 
 const ChatbotSection: React.FC = () => {
@@ -16,7 +19,7 @@ const ChatbotSection: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      text: "Welcome to Golden Gate Park! 🌲 I can help you discover wildlife with real community observations from iNaturalist. Ask me about specific animals or plants, seasonal timing, or get recommendations for what's active right now!",
+      text: "Welcome to Golden Gate Park! 🌲 I'm your AI-powered wildlife guide. I can help you discover animals and plants, provide seasonal recommendations, and give you tips for the best wildlife observation experiences. Ask me anything!",
       isBot: true,
       timestamp: new Date()
     }
@@ -24,6 +27,8 @@ const ChatbotSection: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [availableSpecies, setAvailableSpecies] = useState<WildlifeSpecies[]>([]);
   const [isLoadingSpecies, setIsLoadingSpecies] = useState(true);
+  const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
+  const [useOpenAI, setUseOpenAI] = useState(true);
 
   useEffect(() => {
     loadAvailableSpecies();
@@ -43,6 +48,35 @@ const ChatbotSection: React.FC = () => {
 
   // Get current month for seasonal recommendations
   const getCurrentMonth = () => new Date().getMonth() + 1;
+
+  // Detect species mentioned in text
+  const detectSpeciesInText = (text: string): WildlifeSpecies[] => {
+    const detectedSpecies: WildlifeSpecies[] = [];
+    const lowerText = text.toLowerCase();
+    
+    availableSpecies.forEach(species => {
+      const speciesName = species.name.toLowerCase();
+      const scientificName = species.scientificName.toLowerCase();
+      
+      // Check if species name or scientific name is mentioned
+      if (lowerText.includes(speciesName) || lowerText.includes(scientificName)) {
+        detectedSpecies.push(species);
+      }
+    });
+    
+    return detectedSpecies;
+  };
+
+  // Handle "More Info" button click
+  const handleMoreInfoClick = (species: WildlifeSpecies[]) => {
+    // Add all species to map
+    species.forEach(s => addSpeciesToMap(s));
+    
+    // Show modal with all species for navigation
+    setTimeout(() => {
+      showSpeciesModal(species);
+    }, 100);
+  };
 
   // Find species based on user query using the data service
   const findSpecies = async (query: string): Promise<WildlifeSpecies[]> => {
@@ -84,8 +118,36 @@ const ChatbotSection: React.FC = () => {
     }
   };
 
-  // Generate response for user queries
-  const generateResponse = async (userMessage: string): Promise<string> => {
+  // Generate AI-powered response using OpenAI
+  const generateAIResponse = async (userMessage: string): Promise<{ response: string; detectedSpecies: WildlifeSpecies[] }> => {
+    try {
+      const context = {
+        availableSpecies,
+        currentMonth: getCurrentMonth(),
+      };
+
+      const result = await openaiService.sendChatMessage(userMessage, context);
+      
+      if (result.success && result.response) {
+        const detectedSpecies = detectSpeciesInText(result.response);
+        return { response: result.response, detectedSpecies };
+      } else if (result.fallback) {
+        // Fall back to local responses if OpenAI fails
+        console.warn('Falling back to local responses:', result.error);
+        const localResponse = await generateLocalResponse(userMessage);
+        return { response: localResponse, detectedSpecies: [] };
+      } else {
+        throw new Error(result.error || 'Failed to get AI response');
+      }
+    } catch (error) {
+      console.error('AI response error:', error);
+      const localResponse = await generateLocalResponse(userMessage);
+      return { response: localResponse, detectedSpecies: [] };
+    }
+  };
+
+  // Original local response generation (now as fallback)
+  const generateLocalResponse = async (userMessage: string): Promise<string> => {
     const message = userMessage.toLowerCase();
 
     // Handle greetings
@@ -199,8 +261,18 @@ ${species.description}${isFromAPI ? '\n\n📱 *Data from iNaturalist community o
 📍 *I've added all ${foundSpecies.length} matching species to the map - click any pin to learn more!*`;
   };
 
+  // Main response generation function - chooses between AI and local
+  const generateResponse = async (userMessage: string): Promise<{ response: string; detectedSpecies: WildlifeSpecies[] }> => {
+    if (useOpenAI) {
+      return await generateAIResponse(userMessage);
+    } else {
+      const localResponse = await generateLocalResponse(userMessage);
+      return { response: localResponse, detectedSpecies: [] };
+    }
+  };
+
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isGeneratingResponse) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -210,28 +282,60 @@ ${species.description}${isFromAPI ? '\n\n📱 *Data from iNaturalist community o
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputValue;
     setInputValue('');
+    setIsGeneratingResponse(true);
 
-    // Generate bot response
-    const botResponse = await generateResponse(inputValue);
-    const botMessage: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      text: botResponse,
-      isBot: true,
-      timestamp: new Date()
-    };
+    try {
+      // Generate bot response
+      const result = await generateResponse(currentInput);
+      const botMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: result.response,
+        isBot: true,
+        timestamp: new Date(),
+        detectedSpecies: result.detectedSpecies,
+        showMoreInfoButton: result.detectedSpecies.length > 0 && useOpenAI
+      };
 
-    setTimeout(() => {
-      setMessages(prev => [...prev, botMessage]);
-    }, 500);
+      setTimeout(() => {
+        setMessages(prev => [...prev, botMessage]);
+        setIsGeneratingResponse(false);
+      }, 500);
+    } catch (error) {
+      console.error('Error generating response:', error);
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: "Sorry, I'm having trouble processing your request right now. Please try again later.",
+        isBot: true,
+        timestamp: new Date()
+      };
+      
+      setTimeout(() => {
+        setMessages(prev => [...prev, errorMessage]);
+        setIsGeneratingResponse(false);
+      }, 500);
+    }
   };
 
 
   return (
     <div className="chatbot-section">
       <div className="chatbot-header">
-        <h3>Ask the Wildlife Expert</h3>
-        <p>Get seasonal recommendations and location tips</p>
+        <div className="header-content">
+          <h3>Ask the Wildlife Expert</h3>
+          <p>Get seasonal recommendations and location tips</p>
+        </div>
+        <div className="ai-toggle">
+          <label>
+            <input
+              type="checkbox"
+              checked={useOpenAI}
+              onChange={(e) => setUseOpenAI(e.target.checked)}
+            />
+            AI-powered responses
+          </label>
+        </div>
       </div>
 
       <div className="chatbot-container">
@@ -244,6 +348,20 @@ ${species.description}${isFromAPI ? '\n\n📱 *Data from iNaturalist community o
               <div className="message-content">
                 {message.text}
               </div>
+              {message.showMoreInfoButton && message.detectedSpecies && message.detectedSpecies.length > 0 && (
+                <div className="more-info-container">
+                  <button
+                    className="more-info-button"
+                    onClick={() => handleMoreInfoClick(message.detectedSpecies!)}
+                  >
+                    🔍 Learn more about {
+                      message.detectedSpecies.length === 1 
+                        ? message.detectedSpecies[0].name
+                        : `${message.detectedSpecies.length} species`
+                    }
+                  </button>
+                </div>
+              )}
               <div className="message-time">
                 {message.timestamp.toLocaleTimeString([], {
                   hour: '2-digit',
@@ -252,6 +370,18 @@ ${species.description}${isFromAPI ? '\n\n📱 *Data from iNaturalist community o
               </div>
             </div>
           ))}
+          {isGeneratingResponse && (
+            <div className="message bot-message">
+              <div className="message-content typing-indicator">
+                <span>AI is thinking...</span>
+                <div className="typing-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="chat-input-container">
@@ -266,9 +396,9 @@ ${species.description}${isFromAPI ? '\n\n📱 *Data from iNaturalist community o
           <button
             onClick={handleSendMessage}
             className="send-button"
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || isGeneratingResponse}
           >
-            Send
+            {isGeneratingResponse ? 'Sending...' : 'Send'}
           </button>
         </div>
       </div>
@@ -282,8 +412,8 @@ ${species.description}${isFromAPI ? '\n\n📱 *Data from iNaturalist community o
                 key={species.id}
                 className="suggestion-chip"
                 onClick={async () => {
-                  setInputValue(species.name);
-                  // Trigger the search and add to map
+                  if (isGeneratingResponse) return;
+                  
                   const userMessage: ChatMessage = {
                     id: Date.now().toString(),
                     text: species.name,
@@ -291,19 +421,29 @@ ${species.description}${isFromAPI ? '\n\n📱 *Data from iNaturalist community o
                     timestamp: new Date()
                   };
                   setMessages(prev => [...prev, userMessage]);
+                  setIsGeneratingResponse(true);
                   
-                  const botResponse = await generateResponse(species.name);
-                  const botMessage: ChatMessage = {
-                    id: (Date.now() + 1).toString(),
-                    text: botResponse,
-                    isBot: true,
-                    timestamp: new Date()
-                  };
-                  
-                  setTimeout(() => {
-                    setMessages(prev => [...prev, botMessage]);
-                  }, 500);
-                  setInputValue('');
+                  try {
+                    const result = await generateResponse(species.name);
+                    const botMessage: ChatMessage = {
+                      id: (Date.now() + 1).toString(),
+                      text: result.response,
+                      isBot: true,
+                      timestamp: new Date(),
+                      detectedSpecies: result.detectedSpecies,
+                      showMoreInfoButton: result.detectedSpecies.length > 0 && useOpenAI
+                    };
+                    
+                    setTimeout(() => {
+                      setMessages(prev => [...prev, botMessage]);
+                      setIsGeneratingResponse(false);
+                    }, 500);
+                  } catch (error) {
+                    console.error('Error generating response:', error);
+                    setTimeout(() => {
+                      setIsGeneratingResponse(false);
+                    }, 500);
+                  }
                 }}
               >
                 {species.name}

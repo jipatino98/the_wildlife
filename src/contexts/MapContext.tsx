@@ -43,11 +43,15 @@ interface MapContextType {
   displayedSpecies: WildlifeSpecies[];
   selectedSpecies: WildlifeSpecies | null;
   isModalOpen: boolean;
+  modalSpeciesList: WildlifeSpecies[];
+  currentModalIndex: number;
   addSpeciesToMap: (species: WildlifeSpecies) => void;
   setInitialSpecies: (species: WildlifeSpecies[]) => void;
   clearMapSpecies: () => void;
-  showSpeciesModal: (species: WildlifeSpecies) => void;
+  showSpeciesModal: (species: WildlifeSpecies | WildlifeSpecies[]) => void;
   hideSpeciesModal: () => void;
+  navigateToNextSpecies: () => void;
+  navigateToPrevSpecies: () => void;
 }
 
 const MapContext = createContext<MapContextType | undefined>(undefined);
@@ -60,6 +64,8 @@ export const MapProvider: React.FC<MapProviderProps> = ({ children }) => {
   const [displayedSpecies, setDisplayedSpecies] = useState<WildlifeSpecies[]>([]);
   const [selectedSpecies, setSelectedSpecies] = useState<WildlifeSpecies | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalSpeciesList, setModalSpeciesList] = useState<WildlifeSpecies[]>([]);
+  const [currentModalIndex, setCurrentModalIndex] = useState(0);
 
   const addSpeciesToMap = useCallback((species: WildlifeSpecies) => {
     const fixedSpecies = fixSpeciesCoordinates(species);
@@ -81,15 +87,41 @@ export const MapProvider: React.FC<MapProviderProps> = ({ children }) => {
     setDisplayedSpecies([]);
   }, []);
 
-  const showSpeciesModal = useCallback((species: WildlifeSpecies) => {
-    setSelectedSpecies(species);
+  const showSpeciesModal = useCallback((species: WildlifeSpecies | WildlifeSpecies[]) => {
+    if (Array.isArray(species)) {
+      setModalSpeciesList(species);
+      setCurrentModalIndex(0);
+      setSelectedSpecies(species[0]);
+    } else {
+      setModalSpeciesList([species]);
+      setCurrentModalIndex(0);
+      setSelectedSpecies(species);
+    }
     setIsModalOpen(true);
   }, []);
 
   const hideSpeciesModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedSpecies(null);
+    setModalSpeciesList([]);
+    setCurrentModalIndex(0);
   }, []);
+
+  const navigateToNextSpecies = useCallback(() => {
+    if (modalSpeciesList.length > 1) {
+      const nextIndex = (currentModalIndex + 1) % modalSpeciesList.length;
+      setCurrentModalIndex(nextIndex);
+      setSelectedSpecies(modalSpeciesList[nextIndex]);
+    }
+  }, [currentModalIndex, modalSpeciesList]);
+
+  const navigateToPrevSpecies = useCallback(() => {
+    if (modalSpeciesList.length > 1) {
+      const prevIndex = currentModalIndex === 0 ? modalSpeciesList.length - 1 : currentModalIndex - 1;
+      setCurrentModalIndex(prevIndex);
+      setSelectedSpecies(modalSpeciesList[prevIndex]);
+    }
+  }, [currentModalIndex, modalSpeciesList]);
 
   return (
     <MapContext.Provider
@@ -97,11 +129,15 @@ export const MapProvider: React.FC<MapProviderProps> = ({ children }) => {
         displayedSpecies,
         selectedSpecies,
         isModalOpen,
+        modalSpeciesList,
+        currentModalIndex,
         addSpeciesToMap,
         setInitialSpecies,
         clearMapSpecies,
         showSpeciesModal,
         hideSpeciesModal,
+        navigateToNextSpecies,
+        navigateToPrevSpecies,
       }}
     >
       {children}
