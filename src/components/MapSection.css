@@ -1,0 +1,114 @@
+.map-section {
+  flex: 1;
+  position: relative;
+  height: 50vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.map-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-marker {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.legend-marker.animal {
+  background-color: #ff6b6b;
+}
+
+.legend-marker.plant {
+  background-color: #4ecdc4;
+}
+
+.popup-content {
+  text-align: center;
+  padding: 8px;
+}
+
+.popup-content h3 {
+  margin: 0 0 4px 0;
+  color: #2d5016;
+  font-size: 16px;
+}
+
+.popup-content p {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.popup-button {
+  background: #4a7c59;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-top: 8px;
+  transition: background-color 0.2s;
+}
+
+.popup-button:hover {
+  background: #2d5016;
+}
+
+/* Custom marker styles */
+.custom-marker {
+  background: none !important;
+  border: none !important;
+}
+
+/* Leaflet popup adjustments */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+}
+
+.leaflet-popup-tip {
+  background: white;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .map-controls {
+    top: 5px;
+    right: 5px;
+    padding: 8px;
+  }
+  
+  .legend {
+    font-size: 12px;
+  }
+  
+  .legend-marker {
+    width: 14px;
+    height: 14px;
+  }
+}

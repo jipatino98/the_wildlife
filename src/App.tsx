@@ -1,24 +1,19 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
+import MapSection from './components/MapSection';
+import ChatbotSection from './components/ChatbotSection';
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+      <header className="app-header">
+        <h1>Golden Gate Park Wildlife Discovery</h1>
+        <p>Explore animals and plants in San Francisco's iconic park</p>
       </header>
+      <div className="app-container">
+        <MapSection />
+        <ChatbotSection />
+      </div>
     </div>
   );
 }
