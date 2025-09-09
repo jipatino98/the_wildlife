@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **README.md**: Completely replaced boilerplate Create React App README with comprehensive project documentation
+  - Added detailed project overview and feature descriptions
+  - Included clear installation and setup instructions
+  - Added project structure documentation and wildlife data information
+  - Included map coverage details and contributing guidelines
+  - Replaced generic CRA content with project-specific information
+
 ## [0.3.0] - 2025-09-09
 
 ### Added
