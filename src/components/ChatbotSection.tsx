@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { WildlifeSpecies } from '../types/Wildlife';
 import { wildlifeDataService } from '../services/wildlifeDataService';
+import { useMap } from '../contexts/MapContext';
 import './ChatbotSection.css';
 
 interface ChatMessage {
@@ -11,6 +12,7 @@ interface ChatMessage {
 }
 
 const ChatbotSection: React.FC = () => {
+  const { addSpeciesToMap, showSpeciesModal } = useMap();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -164,6 +166,12 @@ const ChatbotSection: React.FC = () => {
       const recommendation = getSeasonalRecommendation(species);
       const isFromAPI = species.id.startsWith('inat-');
       
+      // Add species to map and show modal
+      addSpeciesToMap(species);
+      setTimeout(() => {
+        showSpeciesModal(species);
+      }, 100);
+      
       return `🌟 **${species.name}** (*${species.scientificName}*)
 
 ${recommendation}
@@ -173,14 +181,22 @@ ${recommendation}
 **Type**: ${species.category} ${species.type}
 **Conservation**: ${species.conservationStatus}
 
-${species.description}${isFromAPI ? '\n\n📱 *Data from iNaturalist community observations*' : ''}`;
+${species.description}${isFromAPI ? '\n\n📱 *Data from iNaturalist community observations*' : ''}
+
+📍 *I've added this species to the map and opened its details!*`;
     }
 
-    // Multiple species found
+    // Multiple species found - add them all to the map
+    foundSpecies.forEach(species => {
+      addSpeciesToMap(species);
+    });
+    
     const speciesNames = foundSpecies.map(s => s.name).slice(0, 3).join(', ');
     const inSeasonCount = foundSpecies.filter(isInSeason).length;
 
-    return `I found ${foundSpecies.length} species matching your search: ${speciesNames}${foundSpecies.length > 3 ? ', and more' : ''}. ${inSeasonCount} of them are currently in season! Ask me about a specific one for detailed seasonal information.`;
+    return `I found ${foundSpecies.length} species matching your search: ${speciesNames}${foundSpecies.length > 3 ? ', and more' : ''}. ${inSeasonCount} of them are currently in season! Ask me about a specific one for detailed seasonal information.
+
+📍 *I've added all ${foundSpecies.length} matching species to the map - click any pin to learn more!*`;
   };
 
   const handleSendMessage = async () => {
@@ -265,9 +281,29 @@ ${species.description}${isFromAPI ? '\n\n📱 *Data from iNaturalist community o
               <span
                 key={species.id}
                 className="suggestion-chip"
-                onClick={() => {
+                onClick={async () => {
                   setInputValue(species.name);
-                  handleSendMessage();
+                  // Trigger the search and add to map
+                  const userMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    text: species.name,
+                    isBot: false,
+                    timestamp: new Date()
+                  };
+                  setMessages(prev => [...prev, userMessage]);
+                  
+                  const botResponse = await generateResponse(species.name);
+                  const botMessage: ChatMessage = {
+                    id: (Date.now() + 1).toString(),
+                    text: botResponse,
+                    isBot: true,
+                    timestamp: new Date()
+                  };
+                  
+                  setTimeout(() => {
+                    setMessages(prev => [...prev, botMessage]);
+                  }, 500);
+                  setInputValue('');
                 }}
               >
                 {species.name}

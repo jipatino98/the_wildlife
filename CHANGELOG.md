@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-09-09
+
+### Added
+- Dynamic wildlife pin system with initial 10 seasonal species displayed on map load
+- Map context system for managing displayed species and modal state across components
+- Coordinate validation and automatic fixing for species outside Golden Gate Park boundaries
+- Random coordinate generation for iNaturalist species with invalid locations
+- Enhanced chatbot integration with map pin addition functionality
+- Species modal auto-opening when single species is queried
+
+### Changed
+- Map now starts with 10 pins based on seasonal availability instead of showing all species
+- Species pins are dynamically added/managed through chatbot queries
+- Improved state management with React Context API for map and species data
+- Enhanced error handling for infinite re-render prevention in useEffect hooks
+- Better separation of concerns between map display and species management
+
+### Fixed
+- Species with coordinates outside Golden Gate Park boundaries now appear within park limits
+- Infinite re-render bug in MapSection useEffect dependencies
+- iNaturalist species coordinates automatically relocated to random park locations
+- Improved component stability with useCallback for context functions
+
+### Technical Improvements
+- Added MapContext for centralized state management of displayed species
+- Implemented coordinate bounds checking utilities
+- Enhanced wildlife data service integration with dynamic species loading
+- Improved React component lifecycle management with proper cleanup
+
 ## [0.1.0] - 2025-09-09
 
 ### Added

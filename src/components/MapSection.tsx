@@ -8,6 +8,7 @@ import {
   LoadingState,
 } from "../services/wildlifeDataService";
 import SpeciesModal from "./SpeciesModal";
+import { useMap } from "../contexts/MapContext";
 import "leaflet/dist/leaflet.css";
 import "./MapSection.css";
 
@@ -34,10 +35,15 @@ const createCustomIcon = (type: string) => {
 };
 
 const MapSection: React.FC = () => {
-  const [selectedSpecies, setSelectedSpecies] =
-    useState<WildlifeSpecies | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [species, setSpecies] = useState<WildlifeSpecies[]>([]);
+  const {
+    displayedSpecies,
+    selectedSpecies,
+    isModalOpen,
+    showSpeciesModal,
+    hideSpeciesModal,
+    setInitialSpecies,
+  } = useMap();
+  const [allSpecies, setAllSpecies] = useState<WildlifeSpecies[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>({
     isLoading: true,
     error: null,
@@ -45,41 +51,107 @@ const MapSection: React.FC = () => {
     lastUpdated: null,
   });
 
-  console.log("Rendering MapSection with species:", species);
+  console.log("Rendering MapSection with displayed species:", displayedSpecies);
 
   useEffect(() => {
+    let isMounted = true;
     const unsubscribe = wildlifeDataService.subscribe(setLoadingState);
+
+    const loadInitialSpecies = async (allSpecies: WildlifeSpecies[]) => {
+      if (!isMounted) return;
+      
+      try {
+        // Get seasonal species first, then fall back to featured species
+        let initialSpecies: WildlifeSpecies[] = [];
+
+        try {
+          const seasonalSpecies =
+            await wildlifeDataService.getSeasonalSpecies();
+          initialSpecies = seasonalSpecies.slice(0, 10);
+        } catch (error) {
+          console.warn(
+            "Failed to get seasonal species, using featured species:",
+            error
+          );
+        }
+
+        // If we don't have enough seasonal species, fill with featured species
+        if (initialSpecies.length < 10) {
+          try {
+            const featuredSpecies =
+              await wildlifeDataService.getFeaturedSpecies(
+                10 - initialSpecies.length
+              );
+            // Add featured species that aren't already in the initial list
+            const existingIds = new Set(initialSpecies.map((s) => s.id));
+            const additionalSpecies = featuredSpecies.filter(
+              (s) => !existingIds.has(s.id)
+            );
+            initialSpecies = [...initialSpecies, ...additionalSpecies].slice(
+              0,
+              10
+            );
+          } catch (error) {
+            console.warn("Failed to get featured species:", error);
+          }
+        }
+
+        // Final fallback: use first 10 from all species
+        if (initialSpecies.length < 10) {
+          const existingIds = new Set(initialSpecies.map((s) => s.id));
+          const remainingSpecies = allSpecies
+            .filter((s) => !existingIds.has(s.id))
+            .slice(0, 10 - initialSpecies.length);
+          initialSpecies = [...initialSpecies, ...remainingSpecies].slice(
+            0,
+            10
+          );
+        }
+
+        console.log("Loading initial species:", initialSpecies);
+        
+        if (isMounted) {
+          setInitialSpecies(initialSpecies);
+        }
+      } catch (error) {
+        console.error("Failed to load initial species:", error);
+      }
+    };
+
+    const loadSpeciesData = async () => {
+      if (!isMounted) return;
+      
+      try {
+        const allSpecies = await wildlifeDataService.getAllSpecies();
+        console.log("Fetched species:", allSpecies);
+        if (isMounted) {
+          setAllSpecies(allSpecies);
+          // Load initial 10 species based on seasonality
+          await loadInitialSpecies(allSpecies);
+        }
+      } catch (error) {
+        console.error("Failed to load species data:", error);
+      }
+    };
 
     // Load initial species data
     loadSpeciesData();
 
-    return unsubscribe;
-  }, []);
-
-  const loadSpeciesData = async () => {
-    try {
-      const allSpecies = await wildlifeDataService.getAllSpecies();
-      console.log("Fetched species:", allSpecies); // 👈 log results here
-      setSpecies(allSpecies);
-    } catch (error) {
-      console.error("Failed to load species data:", error);
-    }
-  };
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []); // Empty dependency array - this should only run once
 
   const handleMarkerClick = (species: WildlifeSpecies) => {
-    setSelectedSpecies(species);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedSpecies(null);
+    showSpeciesModal(species);
   };
 
   const handleRefresh = async () => {
     try {
       await wildlifeDataService.forceRefresh();
-      await loadSpeciesData();
+      // Trigger a page reload to refresh all data
+      window.location.reload();
     } catch (error) {
       console.error("Failed to refresh data:", error);
     }
@@ -92,13 +164,15 @@ const MapSection: React.FC = () => {
           <div className="legend-item">
             <div className="legend-marker animal"></div>
             <span>
-              Animals ({species.filter((s) => s.type === "animal").length})
+              Animals (
+              {displayedSpecies.filter((s) => s.type === "animal").length})
             </span>
           </div>
           <div className="legend-item">
             <div className="legend-marker plant"></div>
             <span>
-              Plants ({species.filter((s) => s.type === "plant").length})
+              Plants (
+              {displayedSpecies.filter((s) => s.type === "plant").length})
             </span>
           </div>
         </div>
@@ -128,7 +202,7 @@ const MapSection: React.FC = () => {
           {!loadingState.isLoading && !loadingState.error && (
             <div className="success-indicator">
               <span className="success-icon">✓</span>
-              <span>{species.length} species loaded</span>
+              <span>{allSpecies.length} species available</span>
               {loadingState.lastUpdated && (
                 <span className="last-updated">
                   (Updated: {loadingState.lastUpdated.toLocaleTimeString()})
@@ -139,7 +213,9 @@ const MapSection: React.FC = () => {
 
           <div className="data-source">
             {wildlifeDataService.getDataStats().isUsingAPI ? (
-              <small>📱 Live data from iNaturalist community observations</small>
+              <small>
+                📱 Live data from iNaturalist community observations
+              </small>
             ) : (
               <small>🏛️ Using local species database</small>
             )}
@@ -158,7 +234,7 @@ const MapSection: React.FC = () => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
 
-        {species.map((speciesItem) => (
+        {displayedSpecies.map((speciesItem) => (
           <Marker
             key={speciesItem.id}
             position={[speciesItem.location.lat, speciesItem.location.lng]}
@@ -174,7 +250,7 @@ const MapSection: React.FC = () => {
                   <em>{speciesItem.scientificName}</em>
                 </p>
                 <p>📍 {speciesItem.location.area}</p>
-                {speciesItem.id.startsWith('inat-') && (
+                {speciesItem.id.startsWith("inat-") && (
                   <p>
                     <small>🌍 Community observation</small>
                   </p>
@@ -195,7 +271,7 @@ const MapSection: React.FC = () => {
         <SpeciesModal
           species={selectedSpecies}
           isOpen={isModalOpen}
-          onClose={closeModal}
+          onClose={hideSpeciesModal}
         />
       )}
     </div>
