@@ -59,7 +59,7 @@ const MapSection: React.FC = () => {
 
     const loadInitialSpecies = async (allSpecies: WildlifeSpecies[]) => {
       if (!isMounted) return;
-      
+
       try {
         // Get seasonal species first, then fall back to featured species
         let initialSpecies: WildlifeSpecies[] = [];
@@ -109,7 +109,7 @@ const MapSection: React.FC = () => {
         }
 
         console.log("Loading initial species:", initialSpecies);
-        
+
         if (isMounted) {
           setInitialSpecies(initialSpecies);
         }
@@ -120,7 +120,7 @@ const MapSection: React.FC = () => {
 
     const loadSpeciesData = async () => {
       if (!isMounted) return;
-      
+
       try {
         const allSpecies = await wildlifeDataService.getAllSpecies();
         console.log("Fetched species:", allSpecies);
@@ -177,7 +177,7 @@ const MapSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="data-status">
+        {/* <div className="data-status">
           {loadingState.isLoading && (
             <div className="loading-indicator">
               <span className="loading-spinner">⟳</span>
@@ -220,7 +220,7 @@ const MapSection: React.FC = () => {
               <small>🏛️ Using local species database</small>
             )}
           </div>
-        </div>
+        </div> */}
       </div>
 
       <MapContainer
