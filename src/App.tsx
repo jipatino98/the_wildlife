@@ -7,7 +7,7 @@ function App() {
   return (
     <div className="App">
       <header className="app-header">
-        <h1>Golden Gate Park Wildlife Discovery</h1>
+        <h1>The WildLIFE</h1>
         <p>Explore animals and plants in San Francisco's iconic park</p>
       </header>
       <div className="app-container">

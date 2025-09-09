@@ -11,6 +11,13 @@ export interface Seasonality {
   behavior: string;
 }
 
+export interface PhotoAttribution {
+  url: string;
+  attribution?: string;
+  license?: string;
+  source: 'iNaturalist' | 'local' | 'placeholder';
+}
+
 export interface WildlifeSpecies {
   id: string;
   name: string;
@@ -19,6 +26,7 @@ export interface WildlifeSpecies {
   category: string;
   description: string;
   image: string;
+  imageAttribution?: PhotoAttribution;
   location: Location;
   seasonality: Seasonality;
   habitat: string;

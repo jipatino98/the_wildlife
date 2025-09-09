@@ -42,6 +42,16 @@ const SpeciesModal: React.FC<SpeciesModalProps> = ({ species, isOpen, onClose })
                 (e.target as HTMLImageElement).src = '/images/placeholder-wildlife.jpg';
               }}
             />
+            {species.imageAttribution && species.imageAttribution.source === 'iNaturalist' && (
+              <div className="photo-attribution">
+                <small>
+                  📷 Photo: {species.imageAttribution.attribution || 'iNaturalist Community'}
+                  {species.imageAttribution.license && (
+                    <span> • License: {species.imageAttribution.license}</span>
+                  )}
+                </small>
+              </div>
+            )}
           </div>
           
           <div className="species-info">

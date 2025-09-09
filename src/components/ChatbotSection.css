@@ -164,12 +164,27 @@
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid transparent;
+  user-select: none;
 }
 
 .suggestion-chip:hover {
   background: #4a7c59;
   color: white;
   transform: translateY(-1px);
+}
+
+.suggestion-chip:active {
+  transform: translateY(0);
+}
+
+.data-info {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.data-info small {
+  color: #666;
+  font-size: 11px;
 }
 
 /* Custom styling for react-chatbotify */
